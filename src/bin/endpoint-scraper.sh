@@ -87,6 +87,38 @@ already_found_path()  {grep -qxF "$1" "$FOUND_PATHS_FILE" 2>/dev/nul; }
 domain_checked()  {grep -qxF "$1" "$CHECKED_DOMAINS_FILE" 2>/dev/nul; }
 mark_domain_checked()  {echo "$1">> "$CHECKED_DOMAINS_FILE"; }
 
+# save endpoint and add it to the queue 
+
+record_path() {
+
+    local path="$1" base_url="$2"
+    [[-z "$path"]] && 0
+    if ! already_found_path "$path"; then
+        echo "$path" >> "$FOUND_PATHS_FILE"
+    fi
+    local full 
+    full=$(resolver_url "$base_url" "$path")
+    if ! already_visited "$full" && ! already_queued "$full"; then 
+        echo "$full" >> "$QUEUE_FILE"
+        mark_queued "$full"
+    fi
+
+}
+
+# extract endpoints from text 
+extract_endpoints() {
+    grep -oP '(["'"'"'`])(/[a-zA-Z0-9_\-./]{1,200}?)\1' 2>/dev/null \
+        | sed -E "s/^[\"'\`]//; s/[\"'\`]\$//" \
+        | grep -P '^/[a-zA-Z0-9]'
+        | grep -viP '\.(png|jpe?g|gif|svg|css|woff2?|ttf|eot|ico|map|html?)(\?|$)'
+        | grep -P '/(api|grapql|v[0-9]+|rest|internal|admin|auth|user|account|service|token|config|settings|upload|download|search|export|report|session|login|logout)s?(/|$)' \
+        | sort -u
+}
+
+# ---discovery-methods-----------------------------------------
+
+# 1-2: page JS + sourcemaps
+
 
 
 
